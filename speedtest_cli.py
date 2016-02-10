@@ -783,11 +783,11 @@ def speedtest():
 
         print_('Share results: %s://www.speedtest.net/result/%s.png' %
                (scheme, resultid[0]))
-
+    return {'ping':best['latency'], 'down':(dlspeed / 1000 / 1000) * args.units[1], 'up':(ulspeed / 1000 / 1000) * args.units[1], 'server':best['id'], 'ref': resultid[0] if args.share else None}
 
 def main():
     try:
-        speedtest()
+        result = speedtest()
     except KeyboardInterrupt:
         print_('\nCancelling...')
 
