@@ -24,6 +24,8 @@ import socket
 import timeit
 import platform
 import threading
+import MySQLdb as mdb
+from warnings import filterwarnings
 
 __version__ = '0.3.4'
 
@@ -592,6 +594,8 @@ def speedtest():
                              'with speedtest.net operated servers')
     parser.add_argument('--version', action='store_true',
                         help='Show the version number and exit')
+    parser.add_argument('--save', action='store_true',
+                        help='Save result to database')
 
     options = parser.parse_args()
     if isinstance(options, tuple):
@@ -783,11 +787,43 @@ def speedtest():
 
         print_('Share results: %s://www.speedtest.net/result/%s.png' %
                (scheme, resultid[0]))
-    return {'ping':best['latency'], 'down':(dlspeed / 1000 / 1000) * args.units[1], 'up':(ulspeed / 1000 / 1000) * args.units[1], 'server':best['id'], 'ref': resultid[0] if args.share else None}
+    if args.save:
+        saveTestResult({'ping':best['latency'], 'down':(dlspeed / 1000 / 1000) * args.units[1], 'up':(ulspeed / 1000 / 1000) * args.units[1], 'server':best['id'], 'ref': resultid[0] if args.share else None})
+
+def saveTestResult(result):
+    print "Saving to database..."
+    filterwarnings('ignore', category = mdb.Warning)
+
+    dbhost = os.environ.get('speedtest_db_host','127.0.0.1')
+    dbuser = os.environ.get('speedtest_db_user','root')
+    dbpassword = os.environ.get('speedtest_db_password','root')
+
+    db = mdb.connect(dbhost,dbuser,dbpassword)
+    cursor = db.cursor()
+    cursor.execute("CREATE DATABASE IF NOT EXISTS speedtest")
+    cursor.execute("USE speedtest")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS speedtest (
+             id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+             ping DOUBLE NOT NULL,
+             down DOUBLE NOT NULL,  
+             up DOUBLE NOT NULL,
+             server INT NOT NULL,
+             ref VARCHAR(16),
+             create_at DATETIME NOT NULL )""")
+    try:
+        cursor.execute("INSERT INTO speedtest(`ping`, `down`, `up`, `server`, `ref`, `create_at`) VALUES(%s, %s, %s, %s, %s, NOW())", 
+                    (result["ping"], result["down"], result["up"], result["server"], result["ref"],))
+        db.commit()
+        print "Test result saved"
+    except:
+        db.rollback()
+        print "Save test result failed."
+
+    db.close()
 
 def main():
     try:
-        result = speedtest()
+        speedtest()
     except KeyboardInterrupt:
         print_('\nCancelling...')
 
