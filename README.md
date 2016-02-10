@@ -6,9 +6,10 @@ Use `--save` to use this feature.
 
 ## MySQLdb module ##
 This program use the MySQLdb module to access MySQL database.
-Install MySQLdb in Ubuntu:
+Install MySQLdb:
 ```
-$ sudo apt-get install python-mysql
+$ sudo apt-get install python-mysql #Ubuntu
+$ sudo yum install MySQL-python  #CentOS
 # or
 $ sudo pip install MySQL-python
 ```
